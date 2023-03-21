@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import json
 from abc import ABC
 
 from barkylib import config
@@ -8,9 +9,12 @@ from barkylib.adapters import repository
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
+from barkylib.adapters.orm import metadata
+
+from barkylib.domain.models import Base
 
 
-class AbstractUnitOfWork(ABC):
+class AbstractUnitOfWork(abc.ABC):
     bookmarks: repository.AbstractRepository
 
     def __enter__(self) -> AbstractUnitOfWork:
@@ -23,9 +27,10 @@ class AbstractUnitOfWork(ABC):
         self._commit()
 
     def collect_new_events(self):
-        for product in self.products.seen:
-            while product.events:
-                yield product.events.pop(0)
+        for bookmark in self.bookmarks.seen:
+            events = []
+            while events:
+                yield events.pop(0)
 
     @abc.abstractmethod
     def _commit(self):
@@ -39,7 +44,8 @@ class AbstractUnitOfWork(ABC):
 DEFAULT_SESSION_FACTORY = sessionmaker(
     bind=create_engine(
         config.get_sqlite_file_url(),
-        isolation_level="REPEATABLE READ",
+        #config.get_sqlite_memory_uri(),
+        #isolation_level="REPEATABLE READ",
     )
 )
 
@@ -50,7 +56,8 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
 
     def __enter__(self):
         self.session = self.session_factory()  # type: Session
-        self.products = repository.SqlAlchemyRepository(self.session)
+        metadata.create_all(self.session.bind)
+        self.bookmarks = repository.SqlAlchemyRepository(self.session)
         return super().__enter__()
 
     def __exit__(self, *args):

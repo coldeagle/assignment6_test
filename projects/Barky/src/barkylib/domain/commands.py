@@ -31,15 +31,17 @@ class AddBookmarkCommand(Command):
     title: str
     url: str
     # data["date_added"] = datetime.utcnow().isoformat()
-    date_added: str
-    date_edited: str
+    date_added: Optional[str] = None
+    date_edited: Optional[str] = None
     notes: Optional[str] = None
 
 
 @dataclass
 class ListBookmarksCommand(Command):
-    order_by: str
-    order: str
+    id: Optional[int] = None
+    title: Optional[str] = None
+    order_by: Optional[str] = None
+    order: Optional[str] = None
 
 
 @dataclass
@@ -50,9 +52,9 @@ class DeleteBookmarkCommand(Command):
 @dataclass
 class EditBookmarkCommand(Command):
     id: int
-    title: str
-    url: str
+    title: Optional[str] = None
+    url: Optional[str] = None
     # data["date_added"] = datetime.utcnow().isoformat()
-    date_added: str
-    date_edited: str
+    date_added: Optional[str] = None
+    date_edited: Optional[str] = None
     notes: Optional[str] = None

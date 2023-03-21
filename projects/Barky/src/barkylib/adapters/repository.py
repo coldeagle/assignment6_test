@@ -1,3 +1,5 @@
+import json
+import abc
 from abc import ABC, abstractmethod
 
 # making use of type hints: https://docs.python.org/3/library/typing.html
@@ -7,14 +9,23 @@ from barkylib.adapters import orm
 from barkylib.domain.models import Base, Bookmark
 
 
-class AbstractRepository(ABC):
+class AbstractRepository(abc.ABC):
     def __init__(self):
         self.seen = set()
 
     def add(self, bookmark: Bookmark):
-        self._add(bookmark)
+        self.add_one(bookmark)
+
+    def get_id(self, id: int):
+        print('get by id')
+        bookmark = self._get_id(id)
+        if bookmark:
+            self.seen.add(bookmark)
+
+        return bookmark
 
     def get(self, title: str):
+        print('get!')
         bookmark = self._get(title)
 
         if bookmark:
@@ -22,15 +33,19 @@ class AbstractRepository(ABC):
 
         return bookmark
 
-    @abstractmethod
+    @abc.abstractmethod
     def _add(self, bookmark: Bookmark):
         raise NotImplementedError
 
-    @abstractmethod
+    @abc.abstractmethod
     def _get(self, title) -> Bookmark:
         raise NotImplementedError
 
-    @abstractmethod
+    @abc.abstractmethod
+    def _get_id(self, id) -> Bookmark:
+        raise NotImplementedError
+
+    @abc.abstractmethod
     def _edit(self, bookmark: Bookmark):
         found = self.get(bookmark.title)
         if found:
@@ -80,32 +95,34 @@ class SqlAlchemyRepository(AbstractRepository):
     https://docs.sqlalchemy.org/en/20/tutorial/index.html
     """
 
-    def __init__(self, url=None) -> None:
+    def __init__(self, session) -> None:
         super().__init__()
-
-        self.engine = None
-
+        self.session = session
+        #self.engine = None
+        # commenting out this portion, url was returning as the session, which did not have a url for the database
         # create db connection
-        if url != None:
-            self.engine = create_engine(url)
-        else:
-            # let's default to in-memory for now
-            self.engine = create_engine("sqlite+pysqlite:///:memory:", echo=True)
-
+        #if url is not None:
+        #    self.engine = create_engine(url)
+        #else:
+        #    # let's default to in-memory for now
+        #    self.engine = create_engine("sqlite+pysqlite:///:memory:", echo=True)
+        # Initializing the engine by default
+        #self.engine = create_engine("sqlite+pysqlite:///:memory:", echo=True)
         # ensure tables are there
-        Base.metadata.create_all(self.engine)
+
+        #Base.metadata.create_all(self.engine)
 
         # obtain session
         # the session is used for all transactions
-        self.Session = sessionmaker(bind=self.engine)
+        #self.Session = sessionmaker(bind=self.engine)
 
     def add_one(self, bookmark: Bookmark) -> int:
-        self.Session.add(bookmark)
-        self.Session.commit()
+        self.session.add(bookmark)
+        self.session.commit()
         pass
 
     def add_many(self, bookmarks: list[Bookmark]) -> int:
-        self.Session.add(bookmarks)
+        self.session.add(bookmarks)
         pass
 
     def delete_one(self, bookmark) -> int:
@@ -121,7 +138,22 @@ class SqlAlchemyRepository(AbstractRepository):
         pass
 
     def find_first(self, query) -> Bookmark:
-        pass
+        return self.session.query(Bookmark).filter_by(title=query).first()
 
     def find_all(self, query) -> list[Bookmark]:
+        if query is None:
+            return self.session.query(Bookmark)
+        if query is not None:
+            return self.session.query(Bookmark).filter_by(title=query)
+
+    def _get(self, title) -> Bookmark:
+        return self.session.query(Bookmark).filter_by(title=title).first()
+
+    def _get_id(self, id) -> Bookmark:
+        return self.session.query(Bookmark).filter_by(id=id).first()
+
+    def _add(self, bookmark: Bookmark) -> int:
+        self.add_one(bookmark)
+
+    def _edit(self, bookmark: Bookmark) -> int:
         pass

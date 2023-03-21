@@ -21,7 +21,7 @@ pip-tools==6.0.1
 pluggy==0.13.1
 py==1.10.0
 pyparsing==2.4.7
-pytest==6.2.2
+pytest==6.2.5
 python-dotenv==0.15.0
 regex==2021.3.17
 requests==2.25.1

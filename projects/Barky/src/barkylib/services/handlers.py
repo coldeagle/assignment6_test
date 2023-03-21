@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+from datetime import datetime
 from typing import TYPE_CHECKING, Callable, Dict, List, Type
 
 from barkylib.domain import commands, events, models
-from src.barkylib.domain.commands import EditBookmarkCommand
-from src.barkylib.domain.events import BookmarkEdited
+from barkylib.domain.commands import EditBookmarkCommand
+from barkylib.domain.events import BookmarkEdited
 
 if TYPE_CHECKING:
     from . import unit_of_work
@@ -17,10 +18,11 @@ def add_bookmark(
 ):
     with uow:
         # look to see if we already have this bookmark as the title is set as unique
-        bookmark = uow.bookmarks.get(title=cmd.title)
+        bookmark = None #uow.bookmarks.get(title=cmd.title)
+
         if bookmark is None:
             bookmark = models.Bookmark(
-                cmd.title, cmd.url, cmd.date_added, cmd.date_edited, cmd.notes
+                cmd.id, cmd.title, cmd.url, cmd.notes, cmd.date_added, cmd.date_edited
             )
             uow.bookmarks.add(bookmark)
         uow.commit()
@@ -32,8 +34,14 @@ def list_bookmarks(
     uow: unit_of_work.AbstractUnitOfWork,
 ):
     bookmarks = None
+
     with uow:
-        bookmarks = uow.bookmarks.all()
+        if cmd.id is None and cmd.title is None:
+            bookmarks = uow.bookmarks.find_all(None)
+        elif cmd.id is not None:
+            bookmarks = uow.bookmarks.get_id(int(cmd.id))
+        elif cmd.title is not None:
+            bookmarks = uow.bookmarks.get(str(cmd.title))
 
     return bookmarks
 

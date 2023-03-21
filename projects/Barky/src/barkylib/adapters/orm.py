@@ -38,6 +38,7 @@ bookmarks = Table(
 
 def start_mappers():
     logger.info("string mappers")
+    print('starting mappers')
     # SQLAlchemy 2.0
     bookmarks_mapper = mapper_reg.map_imperatively(Bookmark, bookmarks)
     # SQLAlchemy 1.3

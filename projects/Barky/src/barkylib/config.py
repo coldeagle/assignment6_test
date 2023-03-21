@@ -2,7 +2,7 @@ import os
 
 
 def get_sqlite_memory_uri():
-    pass
+    return f"sqlite+pysqlite:///:memory:"
 
 
 def get_sqlite_file_url():

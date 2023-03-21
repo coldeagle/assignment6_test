@@ -1,5 +1,6 @@
+import json
 from datetime import datetime
-
+from barkylib.api import views
 from barkylib import bootstrap
 from barkylib.adapters.repository import *
 from barkylib.domain import commands
@@ -15,6 +16,7 @@ from flask import (
     request,
     session,
     url_for,
+    jsonify,
 )
 from flask_sqlalchemy import SQLAlchemy
 from .baseapi import AbstractBookMarkAPI
@@ -40,22 +42,74 @@ class FlaskBookmarkAPI(AbstractBookMarkAPI):
 
     # @app.route("/api/one/<id>")
     def one(self, id):
-        return f"The provided id is {id}"
+        return self.first('id', id)
 
     # @app.route("/api/all")
     def all(self):
-        return f"all records"
+        cmd = commands.ListBookmarksCommand(
+            None
+        )
+        result = bus.handle(cmd)
+        if not result:
+            return "not found", 404
+        return jsonify(result), 200
 
     # @app.route("/api/first/<property>/<value>/<sort>")
-    def first(self, filter, value, sort):
-        return f"the first "
-        pass
+    def first(self, filter, value):
+        print('first')
+        id = None
+        title = None
+        if filter is None or value is None:
+            return "invalid input", 404
+        if filter == 'id':
+            id = int(value)
+        elif filter == 'title':
+            title = str(value)
+
+        cmd = commands.ListBookmarksCommand(
+            id=id,
+            title=title,
+        )
+        print('trying to get result')
+        result = bus.handle(cmd)
+        print('results')
+        print(json.dumps(result))
+        if not result:
+            return "not found", 404
+        return jsonify(result), 200
 
     def many(self, filter, value, sort):
         pass
 
-    def add(bookmark):
-        pass
+    def add(self, bookmark):
+        try:
+
+            cmd = commands.AddBookmarkCommand(
+                None,
+                bookmark.title,
+                bookmark.url,
+                bookmark.date_added,
+                bookmark.date_edited,
+                bookmark.notes,
+            )
+            bus.handle(cmd)
+        except ImportError as e:
+            print(str(e))
+            return {"message": str(e)}, 400
+
+        return f'posted'
+
+    def add_post(self):
+        req_json = request.get_json(force=True)
+        bookmark = Bookmark(
+            req_json.get('id'),
+            req_json.get('title'),
+            req_json.get('url'),
+            req_json.get('date_added'),
+            req_json.get('date_edited'),
+            req_json.get('notes'),
+        )
+        return self.add(bookmark)
 
     def delete(bookmark):
         pass
@@ -75,3 +129,6 @@ bp.add_url_rule("/one/<id>", "one", fb.one, ["GET"])
 
 # @app.route('/api/all')
 bp.add_url_rule("/all", "all", fb.all, ["GET"])
+
+
+bp.add_url_rule("/add", "add", fb.add_post, methods=["POST"])

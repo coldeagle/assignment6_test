@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Date, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
+from datetime import datetime
 
 Base = declarative_base()
 
@@ -16,12 +17,14 @@ class Bookmark:
     """
 
     def __init__(self, id, title, url, notes, date_added, date_edited) -> None:
+        self.events = []  # type: List[events.Event]
         self.id = id
         self.title = title
         self.url = url
         self.notes = notes
-        self.date_added = date_added
-        self.date_edited = date_edited
+        self.date_added = date_added if date_added is None else datetime.utcnow()
+        self.date_edited = date_edited if date_edited is None else datetime.utcnow()
+
 
 
 # class BookmarkModel(Base):
